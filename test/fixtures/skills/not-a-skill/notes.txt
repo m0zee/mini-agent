@@ -1,0 +1,2 @@
+This directory intentionally contains neither SKILL.md nor skill.md, so
+discoverSkills must skip it silently with no diagnostic.
