@@ -5,6 +5,7 @@ import * as readline from "node:readline/promises";
 import { pathToFileURL } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { Agent } from "./agent.js";
+import { getLogFilePath, logErrorToFile } from "./error-log.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { discoverSkills } from "./skills/discover.js";
 import type { Diagnostic, SkillRecord } from "./skills/types.js";
@@ -134,6 +135,30 @@ function writeStderrLine(text: string): void {
   process.stderr.write(`${sanitizeForTerminal(text)}\n`);
 }
 
+// Logs the error, then — ONLY if the write actually succeeded — tells the
+// user where to find it. The log-file path is deliberately NOT mentioned in
+// --help (USAGE runs before any config is loaded, so it could only ever
+// show the un-overridden default, and it's operational detail nobody needs
+// until something has actually gone wrong); it's surfaced here instead,
+// right when it's actionable. Pointing a user at a log entry that was never
+// written would be worse than saying nothing, hence the `wrote` check.
+async function logAndAnnouncePath(context: string, err: unknown, trace?: Trace): Promise<void> {
+  const wrote = await logErrorToFile(context, err, trace);
+  if (wrote) {
+    writeStderrLine(`(full details logged to ${getLogFilePath()})`);
+  }
+}
+
+// The single place every ordinary caught error (one that already has a
+// meaningful describeError() message) is both shown and logged. The
+// ANTHROPIC_API_KEY-missing case below calls logAndAnnouncePath directly
+// instead, since it needs its own exact, spec-required stderr wording
+// rather than describeError()'s generic "Unexpected error: ..." framing.
+async function reportError(context: string, err: unknown, trace?: Trace): Promise<void> {
+  writeStderrLine(describeError(err));
+  await logAndAnnouncePath(context, err, trace);
+}
+
 function writeStdoutLine(text: string): void {
   process.stdout.write(`${sanitizeForTerminal(text)}\n`);
 }
@@ -208,7 +233,7 @@ async function runOneShot(agent: Agent, tools: BuildToolsResult, trace: Trace, p
     // stdout routes through sanitizeForTerminal, "obviously safe" or not).
     writeStdoutLine(answer);
   } catch (err) {
-    writeStderrLine(describeError(err));
+    await reportError("one-shot", err, trace);
     process.exitCode = 1;
   }
 }
@@ -251,7 +276,7 @@ async function runRepl(agent: Agent, tools: BuildToolsResult, trace: Trace): Pro
         } catch (err) {
           // A per-turn failure never ends the session — only "exit"/"quit"/
           // Ctrl-D do. Nothing is pushed onto `history` for a failed turn.
-          writeStderrLine(describeError(err));
+          await reportError("repl-turn", err, trace);
         }
       }
       process.stdout.write("> ");
@@ -316,6 +341,7 @@ async function main(): Promise<void> {
   // constructing an Anthropic client or attempting a request.
   if (!process.env.ANTHROPIC_API_KEY) {
     writeStderrLine("ANTHROPIC_API_KEY is not set (see .env.example)");
+    await logAndAnnouncePath("startup", new Error("ANTHROPIC_API_KEY is not set"), trace);
     process.exitCode = 1;
     return;
   }
@@ -350,9 +376,24 @@ async function main(): Promise<void> {
 // entry point (`node --import tsx src/cli.ts ...` or the built dist/cli.js).
 const isEntryPoint = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 
+// Last-resort safety net for anything that escapes every try/catch above
+// (a bug in a synchronous callback, a promise nobody awaited). Registered
+// only for the real entry point — never when this module is imported for
+// testing — so a genuinely unexpected crash still gets a stderr message,
+// a log entry, and a clean non-zero exit instead of Node's raw default
+// crash output (which would print but never persist anywhere).
 if (isEntryPoint) {
-  main().catch((err) => {
+  process.on("uncaughtException", (err) => {
     writeStderrLine(describeError(err));
+    logAndAnnouncePath("uncaughtException", err).finally(() => process.exit(1));
+  });
+  process.on("unhandledRejection", (reason) => {
+    writeStderrLine(describeError(reason));
+    logAndAnnouncePath("unhandledRejection", reason).finally(() => process.exit(1));
+  });
+
+  main().catch(async (err) => {
+    await reportError("fatal", err);
     process.exitCode = 1;
   });
 }
