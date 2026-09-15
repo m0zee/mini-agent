@@ -238,6 +238,36 @@ async function runOneShot(agent: Agent, tools: BuildToolsResult, trace: Trace, p
   }
 }
 
+// REPL-only chat framing: colors the "> " input marker and labels each
+// answer block "Agent:", mirroring the User:/Agent: transcript convention
+// welcome-me/SKILL.md itself already uses. Scoped to runRepl — never applied
+// to one-shot mode, and never wraps the answer text returned by
+// writeStdoutLine (that string must stay byte-identical to what a skill's
+// HARD REQUIREMENTS mandate; only a separate label line sits above it).
+// Suppressed whenever stdout isn't a real terminal (piped, redirected, or
+// under test) so scripted/non-interactive REPL output is untouched — with
+// this off, every write below reduces to exactly what shipped before.
+const REPL_COLOR_ENABLED = process.stdout.isTTY === true;
+const ANSI_RESET = "\x1b[0m";
+const ANSI_PROMPT = "\x1b[1;36m"; // bold cyan
+const ANSI_AGENT_LABEL = "\x1b[1;35m"; // bold magenta
+
+function replPrompt(): string {
+  return REPL_COLOR_ENABLED ? `${ANSI_PROMPT}> ${ANSI_RESET}` : "> ";
+}
+
+function writeAgentLabel(): void {
+  if (REPL_COLOR_ENABLED) {
+    process.stdout.write(`${ANSI_AGENT_LABEL}Agent:${ANSI_RESET}\n`);
+  }
+}
+
+function writeTurnSpacing(): void {
+  if (REPL_COLOR_ENABLED) {
+    process.stdout.write("\n");
+  }
+}
+
 // Drives the REPL by iterating `rl` as an async iterator instead of issuing
 // repeated question() calls. This is a correctness fix, not a style choice:
 // an earlier question()-based version lost input under piped (non-TTY)
@@ -259,7 +289,7 @@ async function runRepl(agent: Agent, tools: BuildToolsResult, trace: Trace): Pro
   const history: Anthropic.MessageParam[] = [];
 
   try {
-    process.stdout.write("> ");
+    process.stdout.write(replPrompt());
     for await (const line of rl) {
       const trimmed = line.trim();
       if (trimmed.length > 0) {
@@ -270,6 +300,7 @@ async function runRepl(agent: Agent, tools: BuildToolsResult, trace: Trace): Pro
         try {
           const resolved = await resolveUserMessage(trimmed, tools, trace);
           const answer = await agent.run(resolved, history);
+          writeAgentLabel();
           writeStdoutLine(answer);
           history.push({ role: "user", content: resolved });
           history.push({ role: "assistant", content: answer });
@@ -279,7 +310,8 @@ async function runRepl(agent: Agent, tools: BuildToolsResult, trace: Trace): Pro
           await reportError("repl-turn", err, trace);
         }
       }
-      process.stdout.write("> ");
+      writeTurnSpacing();
+      process.stdout.write(replPrompt());
     }
   } finally {
     rl.close();
