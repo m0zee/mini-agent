@@ -18,4 +18,7 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
-tasks/agent-prompt.md
+
+# Internal planning notes — not part of the assignment deliverable,
+# kept locally for reference but not published with the repo.
+tasks/
