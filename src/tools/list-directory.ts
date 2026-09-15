@@ -2,7 +2,7 @@ import type { Dirent } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import * as path from "node:path";
 import { sanitizeForTerminal } from "../text.js";
-import { resolveInside, type FsContext } from "./fs-guard.js";
+import { isDeniedBasename, resolveInside, type FsContext } from "./fs-guard.js";
 
 // Names skipped from every listing (not descended into either, but this is
 // a one-level listing to begin with so "skip" just means "omit from the
@@ -48,9 +48,14 @@ async function classify(dirPath: string, dirent: Dirent): Promise<ListEntry> {
  * or undefined to default to `ctx.cwd`), resolves and containment/deny-list-
  * checks it via fs-guard, then lists that directory's immediate entries
  * (never recursive) as one line per entry — directories suffixed "/",
- * files with no suffix — skipping ".git" and "node_modules". Entries are
- * sorted alphabetically by name (a plain code-unit comparator, not
- * locale-aware — deterministic across environments; not spec-mandated,
+ * files with no suffix — skipping ".git", "node_modules", and any entry
+ * whose basename fs-guard's own deny-list would refuse to read (.env,
+ * .env.*, *.pem, *.key, id_rsa*, id_ed25519*, .npmrc, .netrc, *.p12, *.pfx).
+ * That last exclusion means a listing no longer reveals that a secrets file
+ * exists at all, not just that its contents are unreadable — read_file
+ * already refused the content; this closes the matching visibility gap.
+ * Entries are sorted alphabetically by name (a plain code-unit comparator,
+ * not locale-aware — deterministic across environments; not spec-mandated,
  * just a documented choice) and capped at 200, with one additional,
  * visually-distinct line noting how many more were omitted when there are
  * more than that.
@@ -83,7 +88,9 @@ export async function listDirectory(requestedPath: unknown, ctx: FsContext): Pro
     throw new Error("unable to read directory");
   }
 
-  const visible = dirents.filter((entry) => !SKIPPED_NAMES.has(entry.name.toLowerCase()));
+  const visible = dirents.filter(
+    (entry) => !SKIPPED_NAMES.has(entry.name.toLowerCase()) && !isDeniedBasename(entry.name),
+  );
   const entries = await Promise.all(visible.map((entry) => classify(real, entry)));
   entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 

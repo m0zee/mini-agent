@@ -203,6 +203,43 @@ test("listDirectory excludes .git and node_modules, and suffixes directories wit
   });
 });
 
+test("listDirectory excludes every deny-listed secret filename, not just its content", async () => {
+  // Mirrors fs-guard's own DENY_EXACT_BASENAMES/DENY_SUFFIXES/DENY_PREFIXES
+  // set exactly, so this fails immediately if the two ever drift apart.
+  // read_file already refuses these files' content; this proves a listing
+  // no longer reveals that they exist at all, closing that visibility gap.
+  await withTempDir("mini-agent-tools-denylist-", async (root) => {
+    const denied = [".env", ".env.production", ".npmrc", ".netrc", "server.pem", "client.key", "id_rsa", "id_ed25519.pub"];
+    for (const name of denied) {
+      await writeFile(path.join(root, name), "secret", "utf8");
+    }
+    await writeFile(path.join(root, "keep.txt"), "hi", "utf8");
+
+    const ctx: FsContext = { cwd: root, roots: [root] };
+    const result = await listDirectory(root, ctx);
+    const lines = result.split("\n");
+
+    for (const name of denied) {
+      assert.ok(!lines.includes(name), `expected "${name}" to be excluded from the listing`);
+    }
+    assert.ok(lines.includes("keep.txt"), "a non-denied file must still be listed");
+  });
+});
+
+test("listDirectory's deny-list filter is case-insensitive, matching fs-guard's own check", async () => {
+  await withTempDir("mini-agent-tools-denylist-case-", async (root) => {
+    await writeFile(path.join(root, ".ENV"), "secret", "utf8");
+    await writeFile(path.join(root, "keep.txt"), "hi", "utf8");
+
+    const ctx: FsContext = { cwd: root, roots: [root] };
+    const result = await listDirectory(root, ctx);
+    const lines = result.split("\n");
+
+    assert.ok(!lines.includes(".ENV"), 'expected ".ENV" to be excluded despite the case difference');
+    assert.ok(lines.includes("keep.txt"));
+  });
+});
+
 test("listDirectory excludes oddly-cased .GIT and Node_Modules directories too", async () => {
   // A separate root from the exact-case test above: NTFS (this host) is
   // case-insensitive, so ".git" and ".GIT" cannot coexist as two distinct
