@@ -15,13 +15,12 @@ import { createTrace, type Trace } from "./trace.js";
 
 const DEFAULT_MODEL = "claude-sonnet-5";
 
-const USAGE = `mini-agent [--skills-dir <path>] [--model <id>] [--debug] [--list-skills] [--help] [prompt...]
+const USAGE = `mini-agent [--model <id>] [--debug] [--list-skills] [--help] [prompt...]
 
 A small read-only coding agent, powered by Claude, that implements the Agent Skills spec.
+Skills are discovered from .skills/ at the project root (per the assignment's folder structure).
 
 Options:
-  --skills-dir <path>  Directory to discover skills from
-                        (default: $MINI_AGENT_SKILLS_DIR or <cwd>/.skills)
   --model <id>          Claude model id to use (default: $MINI_AGENT_MODEL or ${DEFAULT_MODEL})
   --debug               Print the constructed system prompt, intermediate tool-calling turns, tool
                          inputs, and token usage to stderr
@@ -323,7 +322,6 @@ async function main(): Promise<void> {
     args: process.argv.slice(2),
     allowPositionals: true,
     options: {
-      "skills-dir": { type: "string" },
       model: { type: "string" },
       debug: { type: "boolean", default: false },
       "list-skills": { type: "boolean", default: false },
@@ -347,7 +345,11 @@ async function main(): Promise<void> {
   }
 
   const cwd = process.cwd();
-  const skillsRoot = values["skills-dir"] ?? process.env.MINI_AGENT_SKILLS_DIR ?? path.join(cwd, ".skills");
+  // Fixed at <cwd>/.skills, matching the assignment's own folder-structure
+  // example verbatim (mini-agent/.skills/welcome-me/SKILL.md) — not
+  // user-configurable, since the assignment never asks for that and a fixed
+  // location keeps the CLI's surface exactly as small as the spec requires.
+  const skillsRoot = path.join(cwd, ".skills");
   const model = values.model ?? process.env.MINI_AGENT_MODEL ?? DEFAULT_MODEL;
   const debugFlag = values.debug ?? false;
   const trace = createTrace(debugFlag);

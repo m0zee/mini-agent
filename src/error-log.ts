@@ -7,13 +7,13 @@ import { sanitizeForTerminal } from "./text.js";
  * REPL turn, a fatal startup error, or a genuinely uncaught exception) is
  * also appended here so it can be traced after the terminal window closes.
  * Default location: `<cwd>/mini-agent-error.log` — the same directory the
- * CLI was invoked from, matching `--skills-dir`'s own `<cwd>/.skills`
- * default rather than a fixed location outside the project. Overridable via
- * `MINI_AGENT_LOG_FILE`, matching the flag/env/default precedence already
- * used for `--skills-dir`/`--model` elsewhere in this project (this one has
- * no CLI flag counterpart, since a logging destination isn't part of the
- * spec'd flag surface — env-only keeps it a debugging aid, not a new
- * user-facing option to document/test to the same bar as `--skills-dir`).
+ * CLI was invoked from, matching the project's own fixed `<cwd>/.skills`
+ * skills directory rather than a location outside the project. Overridable
+ * via `MINI_AGENT_LOG_FILE`, matching `--model`'s env/default precedence
+ * elsewhere in this project (this one has no CLI flag counterpart, since a
+ * logging destination isn't part of the spec'd flag surface — env-only keeps
+ * it a debugging aid, not a new user-facing option to document/test to the
+ * same bar as `--model`).
  * Resolved fresh on every call (not cached at import time), so it correctly
  * reflects whatever `process.cwd()` is at the moment an error actually
  * occurs, not wherever the process happened to start.
