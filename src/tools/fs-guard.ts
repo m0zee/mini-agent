@@ -22,7 +22,11 @@ const DENY_EXACT_BASENAMES = new Set([".env", ".npmrc", ".netrc"]);
 const DENY_SUFFIXES = [".pem", ".key", ".p12", ".pfx"];
 const DENY_PREFIXES = ["id_rsa", "id_ed25519"];
 
-function isDeniedBasename(basename: string): boolean {
+// Exported so list-directory.ts can filter deny-listed entries out of a
+// listing with the exact same rule read-file.ts's resolveInside already
+// enforces for content access, instead of a second, potentially-diverging
+// copy of this logic.
+export function isDeniedBasename(basename: string): boolean {
   const lower = basename.toLowerCase();
   if (DENY_EXACT_BASENAMES.has(lower)) {
     return true;
