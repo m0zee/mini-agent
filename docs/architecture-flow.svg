@@ -1,0 +1,82 @@
+<svg viewBox="0 0 920 900" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="920" height="900" fill="#ffffff"/>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <!-- A: start -->
+  <rect x="260" y="20" width="400" height="60" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.5"/>
+  <text x="460" y="45" text-anchor="middle" font-size="14" font-weight="600" fill="#1e1b4b">Run mini-agent</text>
+  <text x="460" y="64" text-anchor="middle" font-size="12.5" fill="#3730a3">one-shot prompt, or no prompt for the interactive REPL</text>
+
+  <line x1="460" y1="80" x2="460" y2="108" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- B: discover -->
+  <rect x="210" y="110" width="500" height="66" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+  <text x="460" y="135" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">Discover skills under .skills/</text>
+  <text x="460" y="155" text-anchor="middle" font-size="12.5" fill="#334155">Build tier-1 catalog: only each skill's name + description</text>
+
+  <line x1="460" y1="176" x2="460" y2="204" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- C: send to model -->
+  <rect x="180" y="206" width="560" height="66" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+  <text x="460" y="231" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">Send system prompt + catalog + tools to Claude Sonnet</text>
+  <text x="460" y="251" text-anchor="middle" font-size="12.5" fill="#334155">read_file · list_directory · git · activate_skill</text>
+
+  <line x1="460" y1="272" x2="460" y2="300" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Decision diamond -->
+  <polygon points="460,300 630,375 460,450 290,375" fill="#fefce8" stroke="#a16207" stroke-width="1.5"/>
+  <text x="460" y="368" text-anchor="middle" font-size="13" font-weight="600" fill="#713f12">Does the request match</text>
+  <text x="460" y="386" text-anchor="middle" font-size="13" font-weight="600" fill="#713f12">a skill's description?</text>
+
+  <!-- No branch -->
+  <line x1="290" y1="375" x2="220" y2="375" stroke="#334155" stroke-width="1.5"/>
+  <line x1="220" y1="375" x2="220" y2="490" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="232" y="415" font-size="12.5" font-weight="600" fill="#334155">No</text>
+
+  <rect x="40" y="492" width="360" height="80" rx="10" fill="#fff7ed" stroke="#c2410c" stroke-width="1.5"/>
+  <text x="220" y="518" text-anchor="middle" font-size="14" font-weight="600" fill="#7c2d12">Claude answers directly</text>
+  <text x="220" y="538" text-anchor="middle" font-size="12.5" fill="#7c2d12">welcome-me's body is never</text>
+  <text x="220" y="555" text-anchor="middle" font-size="12.5" fill="#7c2d12">loaded into context</text>
+
+  <!-- Yes branch -->
+  <line x1="630" y1="375" x2="700" y2="375" stroke="#334155" stroke-width="1.5"/>
+  <line x1="700" y1="375" x2="700" y2="490" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="670" y="415" font-size="12.5" font-weight="600" fill="#334155">Yes</text>
+
+  <rect x="520" y="492" width="360" height="66" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.5"/>
+  <text x="700" y="517" text-anchor="middle" font-size="14" font-weight="600" fill="#064e3b">Claude calls activate_skill(name)</text>
+  <text x="700" y="537" text-anchor="middle" font-size="12.5" fill="#065f46">a dedicated tool call, model-driven</text>
+
+  <line x1="700" y1="558" x2="700" y2="586" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="520" y="588" width="360" height="70" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.5"/>
+  <text x="700" y="613" text-anchor="middle" font-size="14" font-weight="600" fill="#064e3b">SkillActivator loads the full</text>
+  <text x="700" y="633" text-anchor="middle" font-size="12.5" fill="#065f46">SKILL.md body (tier 2) — returned as a tool_result</text>
+
+  <line x1="700" y1="658" x2="700" y2="686" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="520" y="688" width="360" height="60" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="1.5"/>
+  <text x="700" y="713" text-anchor="middle" font-size="14" font-weight="600" fill="#064e3b">Claude follows the skill's</text>
+  <text x="700" y="732" text-anchor="middle" font-size="12.5" fill="#065f46">instructions exactly (required header included)</text>
+
+  <!-- Converge to final -->
+  <line x1="220" y1="572" x2="220" y2="800" stroke="#334155" stroke-width="1.5"/>
+  <line x1="220" y1="800" x2="358" y2="800" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <line x1="700" y1="748" x2="700" y2="800" stroke="#334155" stroke-width="1.5"/>
+  <line x1="700" y1="800" x2="562" y2="800" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="360" y="800" width="200" height="60" rx="10" fill="#eef2ff" stroke="#4338ca" stroke-width="1.5"/>
+  <text x="460" y="826" text-anchor="middle" font-size="14" font-weight="600" fill="#1e1b4b">Final answer</text>
+  <text x="460" y="845" text-anchor="middle" font-size="12.5" fill="#3730a3">written to stdout</text>
+
+  <!-- REPL loop-back -->
+  <path d="M 880 830 L 880 239 L 742 239" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+  <path d="M 560 830 L 880 830" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="893" y="530" font-size="13" font-weight="600" fill="#64748b" transform="rotate(-90 893 530)" text-anchor="middle">REPL: next turn reuses history</text>
+</svg>
